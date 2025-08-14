@@ -48,7 +48,7 @@ def parse_indeed_job(url):
     if desc_tag: 
         bullet_points = desc_tag.find_all("li") 
         responsibilities = [li.get_text(strip=True) for li in bullet_points] 
-
+    #map responsibilities to job data
     job_data = {
         "title":title,
         "company":company, 
