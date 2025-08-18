@@ -12,6 +12,7 @@ SKILLS_LIST = [
     "Time Management", "Creativity", "Critical Thinking"
 ] 
 
+#for extract skills form resume
 
 def extract_resume_skills(pdf_path): 
     """
