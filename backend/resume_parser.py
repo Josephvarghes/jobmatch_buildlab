@@ -1,67 +1,32 @@
-import pdfplumber
-import json 
-import re
-import os  
+import fitz 
+import docx 
+from fastapi import UploadFile 
 
-#predefined list of common technical & soft skills 
-SKILLS_LIST = [
-    "Python", "Java", "C++", "C#", "JavaScript", "SQL", "HTML", "CSS",
-    "AWS", "Azure", "GCP", "Docker", "Kubernetes", "Machine Learning",
-    "Deep Learning", "Data Analysis", "NLP", "TensorFlow", "PyTorch",
-    "Communication", "Leadership", "Teamwork", "Problem Solving",
-    "Time Management", "Creativity", "Critical Thinking"
-] 
+async def parse_resume_text(file: UploadFile) -> str: 
+      """Extract text from PDF or DOCX resume""" 
+      content = await file.read() 
+      filename = file.filename.lower() 
 
-#for extract skills form resume
-
-def extract_resume_skills(pdf_path): 
-    """
-    Extract text from a PDF resume and identify skills. 
-
-    args:
-        pdf_path(str): Path to the PDF file. 
-
-    Returns: 
-        dict: Contains extracted text and list of identified skills. 
-
-
-    """
-    extracted_text =""
-    if not os.path.exists(pdf_path): 
-        raise FileNotFoundError(f"File not found: {pdf_path}") 
+      if filename.endswith(".pdf"): 
+            return extract_pdf_text(content) 
+      elif filename.endswith(".docx"): 
+            return extract_docx_text(content) 
+      else: 
+            raise ValueError("Unsupported file type. Please upload PDF or DOCX") 
     
-    #Use pdfplumber for reliable text extraction  
-    with pdfplumber.open(pdf_path) as pdf: 
-        for page in pdf.pages: 
-            page_text = page.extract_text() or "" 
-            extracted_text += page_text + " " 
+def extract_pdf_text(file_bytes: bytes) -> str: 
+      text ="" 
+      pdf = fitz.open(stream=file_bytes, filetype="pdf") 
+      for page in pdf: 
+            text += page.get_text() 
+      pdf.close() 
+      return text.strip() 
 
-    
-    #Clean text: remove excessive whitespace & newlines 
-    clean_text = re.sub(r'\s+', ' ', extracted_text).strip() 
+def extract_docx_text(file_bytes: bytes) -> str: 
+      text ="" 
+      from io import BytesIO 
+      doc = docx.Document(BytesIO(file_bytes)) 
+      for para in doc.paragraphs: 
+            text += para.text +"\n" 
+      return text.strip() 
 
-    #case-insensitive skill matching 
-    found_skills = set() 
-    for skill in SKILLS_LIST: 
-        if re.search(r'\b' + re.escape(skill) + r'\b', clean_text, flags=re.IGNORECASE): 
-            found_skills.add(skill) 
-
-    #prepare result 
-    result = {
-        "extracted_text":clean_text, 
-        "skills":sorted(found_skills) #sorted for consistency
-
-    }
-
-    return result 
-
-if __name__ == "__main__": 
-    #Example usage 
-    resume_path = "JOSEPH VARGHESE - Resume.pdf" 
-
-    try:
-        data = extract_resume_skills(resume_path) 
-        #print JSON-formatted output 
-        print(json.dumps(data, indent=4)) 
-    except Exception as e: 
-        print(f"Error:{e}")
